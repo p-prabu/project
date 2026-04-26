@@ -16,6 +16,7 @@ No install, build, Node.js, npm, backend, database, or API is required.
 - Assigned workload view.
 - Priority view with status, assignee, and project filters.
 - Reports for status, priority, assignee, and service area counts.
+- ITSM settings for organization profile, defaults, service areas, assignees, priority SLA days, and three service-management themes.
 - Project and task create, edit, delete.
 - Expandable task and project details.
 - Global search across project name, task title, assignee, service area, priority, status, risk, and impact.
@@ -47,9 +48,11 @@ Because this app has no build step, GitHub Pages can serve it directly.
 - Use **Export JSON** to download a full backup.
 - Use **Import JSON** to restore a previous backup.
 - Imports are validated before replacing current browser data.
+- Use **Settings > Reset Sample** to restore the default local sample data.
 
 ## Files
 
 - `index.html` contains the app shell.
 - `styles.css` contains the ITSM-style layout and responsive design.
 - `app.js` contains sample data, localStorage persistence, validation, views, CRUD, search, reporting, and import/export logic.
+- Settings are stored inside the same browser backup JSON as `settings`, `projects`, and `tasks`.

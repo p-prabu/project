@@ -25,12 +25,12 @@
           <button class="nav-item" data-view="priority" aria-label="Open priority control view"><span>P</span>Priority</button>
           <button class="nav-item" data-view="reports" aria-label="Open reports view"><span>R</span>Reports</button>
           <button class="nav-item" data-view="manage" aria-label="Open manage projects and tasks view"><span>M</span>Manage</button>
+          <button class="nav-item" data-view="settings" aria-label="Open ITSM settings view"><span>S</span>Settings</button>
         </nav>
 
         <div class="storage-panel">
           <button id="exportBtn" aria-label="Export local data as JSON backup">Export JSON</button>
           <button id="importBtn" aria-label="Import JSON backup into local browser storage">Import JSON</button>
-          <button id="resetBtn" class="danger-ghost" aria-label="Reset local data to sample ITSM data">Reset Sample</button>
           <input id="importFile" type="file" accept="application/json" hidden>
         </div>
       </aside>
@@ -44,7 +44,7 @@
           <div class="topbar-stats" id="topStats"></div>
         </header>
 
-        <section class="backup-notice" aria-label="Local storage backup warning">
+        <section id="backupNotice" class="backup-notice" aria-label="Local storage backup warning">
           <strong>Local browser storage only.</strong>
           Your data stays in this browser profile. Export JSON regularly before clearing browser data or changing devices.
         </section>

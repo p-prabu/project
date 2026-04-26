@@ -2,9 +2,27 @@ const STORAGE_KEY = "itsm-project-management-v1";
 const statuses = ["Backlog", "Assess", "Plan", "Build", "Validate", "Deploy", "Review", "Closed"];
 const priorities = ["Critical", "High", "Medium", "Low"];
 const risks = ["High", "Medium", "Low"];
+const themes = ["Classic ITSM", "Midnight ITSM", "Slate ITSM"];
 const today = new Date().toISOString().slice(0, 10);
 
 const sampleData = {
+  settings: {
+    organizationName: "ITSM PMO",
+    environment: "Production Services",
+    defaultPriority: "Medium",
+    defaultRisk: "Medium",
+    defaultStatus: "Backlog",
+    theme: "Classic ITSM",
+    serviceAreas: ["Digital Workplace", "Change Enablement", "Service Configuration", "Service Desk", "Infrastructure"],
+    assignees: ["Asha Raman", "Meera Shah", "Nikhil Menon", "Priya Nair", "Ravi Kumar"],
+    slaDays: {
+      Critical: 2,
+      High: 5,
+      Medium: 10,
+      Low: 20
+    },
+    backupReminder: true
+  },
   projects: [
     {
       id: "proj-portal",
@@ -156,6 +174,7 @@ const topStats = document.getElementById("topStats");
 const toast = document.getElementById("toast");
 const importFile = document.getElementById("importFile");
 const globalSearch = document.getElementById("globalSearch");
+const backupNotice = document.getElementById("backupNotice");
 
 document.querySelectorAll(".nav-item").forEach((button) => {
   button.addEventListener("click", () => {
@@ -167,7 +186,6 @@ document.querySelectorAll(".nav-item").forEach((button) => {
 
 document.getElementById("exportBtn").addEventListener("click", exportJson);
 document.getElementById("importBtn").addEventListener("click", () => importFile.click());
-document.getElementById("resetBtn").addEventListener("click", resetSampleData);
 importFile.addEventListener("change", importJson);
 toast.addEventListener("click", () => toast.hidden = true);
 globalSearch.addEventListener("input", () => {
@@ -186,7 +204,7 @@ function loadStore() {
 
   try {
     const parsed = JSON.parse(stored);
-    return isValidStore(parsed) ? parsed : clone(sampleData);
+    return isValidStore(parsed) ? normalizeStore(parsed) : clone(sampleData);
   } catch {
     return clone(sampleData);
   }
@@ -204,7 +222,22 @@ function isValidStore(value) {
   if (!value || !Array.isArray(value.projects) || !Array.isArray(value.tasks)) return false;
   if (!value.projects.every(isValidProject) || !value.tasks.every(isValidTask)) return false;
   const projectIds = new Set(value.projects.map((project) => project.id));
-  return value.tasks.every((task) => projectIds.has(task.projectId));
+  return value.tasks.every((task) => projectIds.has(task.projectId)) && (!value.settings || isValidSettings(value.settings));
+}
+
+function normalizeStore(value) {
+  return {
+    settings: {
+      ...clone(sampleData.settings),
+      ...(value.settings || {}),
+      slaDays: {
+        ...clone(sampleData.settings.slaDays),
+        ...(value.settings?.slaDays || {})
+      }
+    },
+    projects: value.projects,
+    tasks: value.tasks
+  };
 }
 
 function isValidProject(project) {
@@ -237,6 +270,22 @@ function isValidTask(task) {
     isText(task.updatedAt);
 }
 
+function isValidSettings(settings) {
+  return settings &&
+    isText(settings.organizationName) &&
+    isText(settings.environment) &&
+    priorities.includes(settings.defaultPriority) &&
+    risks.includes(settings.defaultRisk) &&
+    statuses.includes(settings.defaultStatus) &&
+    (!settings.theme || themes.includes(settings.theme)) &&
+    Array.isArray(settings.serviceAreas) &&
+    Array.isArray(settings.assignees) &&
+    settings.serviceAreas.every(isText) &&
+    settings.assignees.every(isText) &&
+    settings.slaDays &&
+    priorities.every((priority) => Number.isFinite(Number(settings.slaDays[priority])) && Number(settings.slaDays[priority]) >= 0);
+}
+
 function isText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -253,10 +302,13 @@ function render() {
     assigned: "Assigned Workload",
     priority: "Priority Control",
     reports: "Operational Reports",
+    settings: "ITSM Settings",
     manage: "Projects & Tasks"
   };
   const projects = getVisibleProjects();
   const tasks = getVisibleTasks();
+  backupNotice.hidden = !state.settings.backupReminder;
+  document.documentElement.dataset.theme = themeKey(state.settings.theme);
 
   pageTitle.textContent = titles[activeView];
   topStats.innerHTML = [
@@ -271,6 +323,7 @@ function render() {
   if (activeView === "assigned") app.innerHTML = assignedView();
   if (activeView === "priority") app.innerHTML = priorityView();
   if (activeView === "reports") app.innerHTML = reportsView();
+  if (activeView === "settings") app.innerHTML = settingsView();
   if (activeView === "manage") app.innerHTML = manageView();
 }
 
@@ -457,10 +510,82 @@ function reportsView() {
         ${metric("Critical tasks", tasks.filter((task) => task.priority === "Critical").length, "hot")}
         ${metric("Service areas", Object.keys(serviceAreas).length, "cool")}
       </div>
+      ${panel("SLA Targets", reportTable(state.settings.slaDays))}
       ${panel("Tasks By Status", reportTable(statusCounts))}
       ${panel("Tasks By Priority", reportTable(priorityCounts))}
       ${panel("Workload By Assignee", reportTable(assigneeCounts))}
       ${panel("Projects By Service Area", reportTable(serviceAreas))}
+    </section>
+  `;
+}
+
+function settingsView() {
+  return `
+    <section class="view-grid">
+      <div class="settings-hero">
+        <div>
+          <span class="eyebrow">ITSM Configuration</span>
+          <h2>${escapeHtml(state.settings.organizationName)}</h2>
+          <p>${escapeHtml(state.settings.environment)} configuration for project intake, task defaults, workload ownership, and SLA reporting.</p>
+        </div>
+        <div class="settings-kpis">
+          <span>${state.settings.serviceAreas.length} Service Areas</span>
+          <span>${state.settings.assignees.length} Assignees</span>
+          <span>${state.settings.backupReminder ? "Backup Notice On" : "Backup Notice Off"}</span>
+        </div>
+      </div>
+
+      <div class="management-grid">
+      ${panel("Service Desk Profile", `
+        <form class="form-grid" id="settingsForm">
+          ${inputField("Organization Name", "settings-org", state.settings.organizationName, true)}
+          ${inputField("Environment", "settings-env", state.settings.environment, true)}
+          <div class="form-section wide">Default Intake Values</div>
+          ${selectField("Default Priority", "settings-priority", priorities, state.settings.defaultPriority)}
+          ${selectField("Default Risk", "settings-risk", risks, state.settings.defaultRisk)}
+          ${selectField("Default Status", "settings-status", statuses, state.settings.defaultStatus)}
+          ${selectField("ITSM Theme", "settings-theme", themes, state.settings.theme)}
+          <label>Local Backup Reminder
+            <select id="settings-backup">
+              <option value="true" ${state.settings.backupReminder ? "selected" : ""}>Enabled</option>
+              <option value="false" ${!state.settings.backupReminder ? "selected" : ""}>Disabled</option>
+            </select>
+          </label>
+          <div class="form-section wide">Catalog And Ownership Options</div>
+          <label class="wide">Service Areas
+            <textarea id="settings-service-areas" aria-label="Service areas, one per line">${escapeHtml(state.settings.serviceAreas.join("\n"))}</textarea>
+          </label>
+          <label class="wide">Assignees
+            <textarea id="settings-assignees" aria-label="Assignees, one per line">${escapeHtml(state.settings.assignees.join("\n"))}</textarea>
+          </label>
+          <button class="primary" type="submit">Save Settings</button>
+        </form>
+      `)}
+      ${panel("Priority SLA Policy", `
+        <form class="form-grid" id="slaForm">
+          ${priorities.map((priority) => inputField(`${priority} SLA Days`, `sla-${priority.toLowerCase()}`, String(state.settings.slaDays[priority]), true, "number")).join("")}
+          <button class="primary" type="submit">Save SLA Targets</button>
+        </form>
+      `)}
+      ${panel("Current ITSM Options", `
+        <div class="settings-summary">
+          <div><strong>Service Areas</strong><span class="option-cloud">${state.settings.serviceAreas.map((area) => `<em>${escapeHtml(area)}</em>`).join("")}</span></div>
+          <div><strong>Assignment Groups</strong><span class="option-cloud">${state.settings.assignees.map((assignee) => `<em>${escapeHtml(assignee)}</em>`).join("")}</span></div>
+          <div><strong>Default Intake</strong><span>${escapeHtml(state.settings.defaultStatus)} status, ${escapeHtml(state.settings.defaultPriority)} priority, ${escapeHtml(state.settings.defaultRisk)} risk</span></div>
+          <div><strong>Theme</strong><span>${escapeHtml(state.settings.theme)}</span></div>
+          <div><strong>SLA Targets</strong><span>${priorities.map((priority) => `${priority}: ${state.settings.slaDays[priority]}d`).join(" | ")}</span></div>
+        </div>
+      `, "", "full")}
+      ${panel("Local Data Controls", `
+        <div class="settings-actions">
+          <div>
+            <strong>Reset sample data</strong>
+            <span>Restore the default ITSM projects, tasks, settings, SLA targets, and theme in this browser.</span>
+          </div>
+          <button class="danger-action" type="button" onclick="resetSampleData()">Reset Sample</button>
+        </div>
+      `, "", "full")}
+      </div>
     </section>
   `;
 }
@@ -485,13 +610,14 @@ function projectForm(project) {
     <form class="form-grid" id="projectForm">
       ${inputField("Name", "project-name", project.name || "", true)}
       ${inputField("Owner", "project-owner", project.owner || "", true)}
-      ${inputField("Service Area", "project-service", project.serviceArea || "", true)}
-      ${selectField("Priority", "project-priority", priorities, project.priority || "Medium")}
-      ${selectField("Status", "project-status", statuses, project.status || "Backlog")}
-      ${selectField("Risk", "project-risk", risks, project.risk || "Medium")}
+      ${inputField("Service Area", "project-service", project.serviceArea || "", true, "text", "service-area-options")}
+      ${selectField("Priority", "project-priority", priorities, project.priority || state.settings.defaultPriority)}
+      ${selectField("Status", "project-status", statuses, project.status || state.settings.defaultStatus)}
+      ${selectField("Risk", "project-risk", risks, project.risk || state.settings.defaultRisk)}
       ${inputField("Start Date", "project-start", project.startDate || today, false, "date")}
       ${inputField("Target Date", "project-target", project.targetDate || today, false, "date")}
       <label class="wide">Description<textarea id="project-description">${escapeHtml(project.description || "")}</textarea></label>
+      ${dataList("service-area-options", state.settings.serviceAreas)}
       <button class="primary" type="submit">${editingProjectId ? "Update Project" : "Create Project"}</button>
     </form>
   `;
@@ -501,20 +627,21 @@ function taskForm(task) {
   return `
     <form class="form-grid" id="taskForm">
       ${inputField("Title", "task-title", task.title || "", true)}
-      ${inputField("Assignee", "task-assignee", task.assignee || "", true)}
+      ${inputField("Assignee", "task-assignee", task.assignee || "", true, "text", "assignee-options")}
       <label>Project
         <select id="task-project" required>
           <option value="">Select project</option>
           ${state.projects.map((project) => `<option value="${project.id}" ${(task.projectId || state.projects[0]?.id) === project.id ? "selected" : ""}>${escapeHtml(project.name)}</option>`).join("")}
         </select>
       </label>
-      ${selectField("Priority", "task-priority", priorities, task.priority || "Medium")}
-      ${selectField("Status", "task-status", statuses, task.status || "Backlog")}
-      ${selectField("Change Risk", "task-risk", risks, task.changeRisk || "Medium")}
+      ${selectField("Priority", "task-priority", priorities, task.priority || state.settings.defaultPriority)}
+      ${selectField("Status", "task-status", statuses, task.status || state.settings.defaultStatus)}
+      ${selectField("Change Risk", "task-risk", risks, task.changeRisk || state.settings.defaultRisk)}
       ${inputField("Start Date", "task-start", task.startDate || today, false, "date")}
       ${inputField("Due Date", "task-due", task.dueDate || today, false, "date")}
       ${inputField("Service Impact", "task-impact", task.serviceImpact || "")}
       <label class="wide">Description<textarea id="task-description">${escapeHtml(task.description || "")}</textarea></label>
+      ${dataList("assignee-options", state.settings.assignees)}
       <button class="primary" type="submit">${editingTaskId ? "Update Task" : "Create Task"}</button>
     </form>
   `;
@@ -615,8 +742,8 @@ function badge(value) {
   return `<span class="badge ${String(value).toLowerCase()}">${escapeHtml(value)}</span>`;
 }
 
-function inputField(label, id, value, required = false, type = "text") {
-  return `<label>${label}<input id="${id}" type="${type}" value="${escapeAttr(value)}" ${required ? "required" : ""}></label>`;
+function inputField(label, id, value, required = false, type = "text", list = "") {
+  return `<label>${label}<input id="${id}" type="${type}" value="${escapeAttr(value)}" ${list ? `list="${list}"` : ""} ${required ? "required" : ""}></label>`;
 }
 
 function selectField(label, id, options, selected) {
@@ -627,6 +754,10 @@ function selectField(label, id, options, selected) {
       </select>
     </label>
   `;
+}
+
+function dataList(id, options) {
+  return `<datalist id="${id}">${options.map((option) => `<option value="${escapeAttr(option)}"></option>`).join("")}</datalist>`;
 }
 
 function reportTable(counts) {
@@ -655,6 +786,8 @@ app.addEventListener("submit", (event) => {
   event.preventDefault();
   if (event.target.id === "projectForm") saveProject();
   if (event.target.id === "taskForm") saveTask();
+  if (event.target.id === "settingsForm") saveSettings();
+  if (event.target.id === "slaForm") saveSlaTargets();
 });
 
 app.addEventListener("change", (event) => {
@@ -718,6 +851,57 @@ function saveTask() {
   }
 
   saveStore();
+  render();
+}
+
+function saveSettings() {
+  const serviceAreas = listValue("settings-service-areas");
+  const assignees = listValue("settings-assignees");
+
+  if (!value("settings-org") || !value("settings-env")) {
+    return showToast("Organization name and environment are required.");
+  }
+
+  if (serviceAreas.length === 0 || assignees.length === 0) {
+    return showToast("Add at least one service area and one assignee.");
+  }
+
+  state.settings = {
+    ...state.settings,
+    organizationName: value("settings-org"),
+    environment: value("settings-env"),
+    defaultPriority: value("settings-priority"),
+    defaultRisk: value("settings-risk"),
+    defaultStatus: value("settings-status"),
+    theme: value("settings-theme"),
+    backupReminder: value("settings-backup") === "true",
+    serviceAreas,
+    assignees
+  };
+
+  saveStore();
+  showToast("ITSM settings saved.");
+  render();
+}
+
+function saveSlaTargets() {
+  const nextSlaDays = {};
+
+  for (const priority of priorities) {
+    const days = Number(value(`sla-${priority.toLowerCase()}`));
+    if (!Number.isFinite(days) || days < 0) {
+      return showToast("SLA days must be zero or greater.");
+    }
+    nextSlaDays[priority] = days;
+  }
+
+  state.settings = {
+    ...state.settings,
+    slaDays: nextSlaDays
+  };
+
+  saveStore();
+  showToast("SLA targets saved.");
   render();
 }
 
@@ -836,6 +1020,10 @@ function value(id) {
   return document.getElementById(id).value.trim();
 }
 
+function listValue(id) {
+  return [...new Set(value(id).split(/\n|,/).map((item) => item.trim()).filter(Boolean))];
+}
+
 function makeId(prefix) {
   if (window.crypto && crypto.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -858,6 +1046,10 @@ function showToast(message) {
   toast.hidden = false;
 }
 
+function themeKey(theme) {
+  return String(theme || "Classic ITSM").toLowerCase().replaceAll(" ", "-");
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -876,3 +1068,4 @@ window.deleteProject = deleteProject;
 window.editTask = editTask;
 window.deleteTask = deleteTask;
 window.updateTaskStatus = updateTaskStatus;
+window.resetSampleData = resetSampleData;
