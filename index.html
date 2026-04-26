@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITSM Project Management</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">IT</span>
+          <div>
+            <strong>ITSM PMO</strong>
+            <small>Service work control</small>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Primary views">
+          <button class="nav-item active" data-view="dashboard" aria-label="Open dashboard view"><span>D</span>Dashboard</button>
+          <button class="nav-item" data-view="kanban" aria-label="Open Kanban view"><span>K</span>Kanban</button>
+          <button class="nav-item" data-view="timeline" aria-label="Open timeline view"><span>T</span>Timeline</button>
+          <button class="nav-item" data-view="assigned" aria-label="Open assigned workload view"><span>A</span>Assigned</button>
+          <button class="nav-item" data-view="priority" aria-label="Open priority control view"><span>P</span>Priority</button>
+          <button class="nav-item" data-view="reports" aria-label="Open reports view"><span>R</span>Reports</button>
+          <button class="nav-item" data-view="manage" aria-label="Open manage projects and tasks view"><span>M</span>Manage</button>
+        </nav>
+
+        <div class="storage-panel">
+          <button id="exportBtn" aria-label="Export local data as JSON backup">Export JSON</button>
+          <button id="importBtn" aria-label="Import JSON backup into local browser storage">Import JSON</button>
+          <button id="resetBtn" class="danger-ghost" aria-label="Reset local data to sample ITSM data">Reset Sample</button>
+          <input id="importFile" type="file" accept="application/json" hidden>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1 id="pageTitle">Operational Dashboard</h1>
+            <p>ITIL-inspired project delivery stored only in this browser.</p>
+          </div>
+          <div class="topbar-stats" id="topStats"></div>
+        </header>
+
+        <section class="backup-notice" aria-label="Local storage backup warning">
+          <strong>Local browser storage only.</strong>
+          Your data stays in this browser profile. Export JSON regularly before clearing browser data or changing devices.
+        </section>
+
+        <section class="global-tools" aria-label="Global tools">
+          <label for="globalSearch">Search projects and tasks</label>
+          <input id="globalSearch" type="search" placeholder="Search name, assignee, service area, priority, status, impact">
+        </section>
+
+        <button id="toast" class="toast" aria-live="polite" hidden></button>
+        <section id="app" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
