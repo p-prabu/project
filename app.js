@@ -415,6 +415,7 @@ function timelineView() {
   const min = new Date(`${minDate}T00:00:00`).getTime();
   const max = new Date(`${maxDate}T00:00:00`).getTime();
   const span = Math.max(max - min, 86400000);
+  const monthMarkers = getMonthMarkers(minDate, maxDate, min, span);
   const bar = (start, end) => {
     const left = ((new Date(`${start}T00:00:00`).getTime() - min) / span) * 100;
     const width = Math.max(((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / span) * 100, 5);
@@ -423,22 +424,44 @@ function timelineView() {
 
   return `
     <section class="timeline">
-      <div class="timeline-scale"><span>${formatDate(minDate)}</span><span>${formatDate(maxDate)}</span></div>
+      <div class="timeline-scale">
+        <div class="timeline-scale-label">
+          <strong>Timeline range</strong>
+          <span>${formatDate(minDate)} - ${formatDate(maxDate)}</span>
+        </div>
+        <div class="timeline-month-track" aria-label="Timeline month markers">
+          ${monthMarkers.map((marker) => `<span class="timeline-month-marker ${marker.edge}" style="left:${marker.left}%">${marker.label}</span>`).join("")}
+        </div>
+      </div>
       ${panel("Project Plan", projects.map((project) => timelineRow(
         project.name,
         `${project.owner} - ${project.serviceArea}`,
-        `<div class="timeline-bar project ${project.priority.toLowerCase()}" style="${bar(project.startDate, project.targetDate)}">${project.status}</div>`
+        timelineBar({
+          label: project.status,
+          className: `project ${project.priority.toLowerCase()}`,
+          style: bar(project.startDate, project.targetDate),
+          title: `${project.name}\nStart: ${formatDate(project.startDate)}\nEnd: ${formatDate(project.targetDate)}`
+        })
       )).join("") || `<p class="empty inline-empty">No matching projects.</p>`)}
       ${panel("Task Schedule", tasks.map((task) => {
         const project = projectById(task.projectId);
         return timelineRow(
           task.title,
           project ? project.name : "Unknown project",
-          `<div class="timeline-bar ${task.priority.toLowerCase()} ${isOverdue(task.dueDate, task.status) ? "late" : ""}" style="${bar(task.startDate, task.dueDate)}">${escapeHtml(task.assignee)}</div>`
+          timelineBar({
+            label: task.assignee,
+            className: `${task.priority.toLowerCase()} ${isOverdue(task.dueDate, task.status) ? "late" : ""}`,
+            style: bar(task.startDate, task.dueDate),
+            title: `${task.title}\nStart: ${formatDate(task.startDate)}\nEnd: ${formatDate(task.dueDate)}`
+          })
         );
       }).join("") || `<p class="empty inline-empty">No matching tasks.</p>`)}
     </section>
   `;
+}
+
+function timelineBar({ label, className, style, title }) {
+  return `<div class="timeline-bar ${className}" style="${style}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${escapeHtml(label)}</div>`;
 }
 
 function timelineRow(label, meta, content) {
@@ -1043,6 +1066,29 @@ function now() {
 
 function formatDate(date) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatMonth(date) {
+  return new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(date);
+}
+
+function getMonthMarkers(minDate, maxDate, min, span) {
+  const start = new Date(`${minDate}T00:00:00`);
+  const end = new Date(`${maxDate}T00:00:00`);
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const markers = [];
+
+  while (cursor <= end) {
+    const left = Math.min(Math.max(((cursor.getTime() - min) / span) * 100, 0), 100);
+    markers.push({
+      label: formatMonth(cursor),
+      left: left.toFixed(2),
+      edge: left <= 1 ? "edge-start" : left >= 99 ? "edge-end" : ""
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return markers;
 }
 
 function isOverdue(date, status) {
