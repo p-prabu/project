@@ -980,7 +980,7 @@ function exportJson() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "itsm-project-management-backup.json";
+  link.download = `itsm-project-management-backup-${today}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
