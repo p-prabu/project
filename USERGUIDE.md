@@ -51,13 +51,15 @@ Open **Settings** to manage:
 - Assignment groups.
 - SLA target days by priority.
 
-## Themes
+## Appearance
 
-The app includes three ITSM-style themes:
+Open **Settings**, then use **Appearance > Theme**.
 
-- **Classic ITSM**: clean navy, white, and blue service desk style.
-- **Midnight ITSM**: deeper enterprise navy theme.
-- **Slate ITSM**: neutral slate theme with teal accents.
+The app includes three themes:
+
+- **Pearl Grid**: clean navy, white, and blue service desk style.
+- **Midnight Grid**: deeper enterprise navy theme.
+- **Nova 2050**: neutral slate theme with teal accents.
 
 Theme selection is saved in browser storage.
 

@@ -2,7 +2,12 @@ const STORAGE_KEY = "itsm-project-management-v1";
 const statuses = ["Backlog", "Assess", "Plan", "Build", "Validate", "Deploy", "Review", "Closed"];
 const priorities = ["Critical", "High", "Medium", "Low"];
 const risks = ["High", "Medium", "Low"];
-const themes = ["Classic ITSM", "Midnight ITSM", "Slate ITSM"];
+const themes = ["Pearl Grid", "Midnight Grid", "Nova 2050"];
+const legacyThemeMap = {
+  "Classic ITSM": "Pearl Grid",
+  "Midnight ITSM": "Midnight Grid",
+  "Slate ITSM": "Nova 2050"
+};
 const today = new Date().toISOString().slice(0, 10);
 
 const sampleData = {
@@ -12,7 +17,7 @@ const sampleData = {
     defaultPriority: "Medium",
     defaultRisk: "Medium",
     defaultStatus: "Backlog",
-    theme: "Classic ITSM",
+    theme: "Pearl Grid",
     serviceAreas: ["Digital Workplace", "Change Enablement", "Service Configuration", "Service Desk", "Infrastructure"],
     assignees: ["Asha Raman", "Meera Shah", "Nikhil Menon", "Priya Nair", "Ravi Kumar"],
     slaDays: {
@@ -226,13 +231,15 @@ function isValidStore(value) {
 }
 
 function normalizeStore(value) {
+  const settings = value.settings || {};
   return {
     settings: {
       ...clone(sampleData.settings),
-      ...(value.settings || {}),
+      ...settings,
+      theme: legacyThemeMap[settings.theme] || settings.theme || sampleData.settings.theme,
       slaDays: {
         ...clone(sampleData.settings.slaDays),
-        ...(value.settings?.slaDays || {})
+        ...(settings.slaDays || {})
       }
     },
     projects: value.projects,
@@ -277,7 +284,7 @@ function isValidSettings(settings) {
     priorities.includes(settings.defaultPriority) &&
     risks.includes(settings.defaultRisk) &&
     statuses.includes(settings.defaultStatus) &&
-    (!settings.theme || themes.includes(settings.theme)) &&
+    (!settings.theme || themes.includes(settings.theme) || Object.prototype.hasOwnProperty.call(legacyThemeMap, settings.theme)) &&
     Array.isArray(settings.serviceAreas) &&
     Array.isArray(settings.assignees) &&
     settings.serviceAreas.every(isText) &&
@@ -544,7 +551,8 @@ function settingsView() {
           ${selectField("Default Priority", "settings-priority", priorities, state.settings.defaultPriority)}
           ${selectField("Default Risk", "settings-risk", risks, state.settings.defaultRisk)}
           ${selectField("Default Status", "settings-status", statuses, state.settings.defaultStatus)}
-          ${selectField("ITSM Theme", "settings-theme", themes, state.settings.theme)}
+          <div class="form-section wide">Appearance</div>
+          ${selectField("Theme", "settings-theme", themes, state.settings.theme)}
           <label>Local Backup Reminder
             <select id="settings-backup">
               <option value="true" ${state.settings.backupReminder ? "selected" : ""}>Enabled</option>
@@ -1046,8 +1054,9 @@ function showToast(message) {
   toast.hidden = false;
 }
 
-function themeKey(theme) {
-  return String(theme || "Classic ITSM").toLowerCase().replaceAll(" ", "-");
+function themeKey(themeName) {
+  const resolvedTheme = legacyThemeMap[themeName] || themeName || "Pearl Grid";
+  return String(resolvedTheme).toLowerCase().replaceAll(" ", "-");
 }
 
 function escapeHtml(value) {

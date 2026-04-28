@@ -17,7 +17,7 @@
 - JSON export/import with validation.
 - Reset sample data from Settings.
 - ITSM Settings for organization profile, defaults, service areas, assignment groups, SLA days, backup reminder, and theme.
-- Three ITSM-style themes.
+- Three Appearance themes: Pearl Grid, Midnight Grid, and Nova 2050.
 - Premium ITSM visual polish for panels, tables, forms, Kanban, timeline, and settings.
 - User guide and README documentation.
 

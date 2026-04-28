@@ -9,8 +9,8 @@ A lightweight, premium ITSM-style project management app built with plain HTML, 
 - Views for Dashboard, Kanban, Timeline, Assigned Workload, Priority Control, Reports, Manage, and Settings.
 - Project and task create, edit, delete.
 - Global search across projects, tasks, owners, assignees, priority, status, risk, impact, and service area.
-- ITSM Settings for organization profile, default intake values, service areas, assignment groups, SLA days, backup reminder, and themes.
-- Three ITSM-style themes: Classic ITSM, Midnight ITSM, and Slate ITSM.
+- ITSM Settings for organization profile, default intake values, service areas, assignment groups, SLA days, backup reminder, and Appearance themes.
+- Three Appearance themes: Pearl Grid, Midnight Grid, and Nova 2050.
 - JSON export/import for backup and restore.
 
 ## Run Locally
